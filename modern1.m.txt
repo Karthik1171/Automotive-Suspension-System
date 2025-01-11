@@ -1,0 +1,52 @@
+M1 = 3000;
+M2 = 350;
+K1 = 80000;
+K2 = 500000;
+b1 = 350;
+b2 = 15020;
+
+s = tf('s');
+G1 = ((M1+M2)*s^2+b2*s+K2)/((M1*s^2+b1*s+K1)*(M2*s^2+(b1+b2)*s+(K1+K2))-(b1*s+K1)*(b1*s+K1));
+
+%step(G1)
+
+G2 = (-M1*b2*s^3-M1*K2*s^2)/((M1*s^2+b1*s+K1)*(M2*s^2+(b1+b2)*s+(K1+K2))-(b1*s+K1)*(b1*s+K1));
+
+%step(0.1*G2)
+[a ,b ,c, d]=linmod('modern2')
+
+%controllability check
+f=ctrb(a,b);
+if rank(f)==rank(a)
+    disp('All states are controllable');
+else 
+    disp('All states are not controllable');
+    uncontrollable_states = rank(a) - rank(f);
+    fprintf('Number of uncontrollable states: %d\n', uncontrollable_states);
+end
+%desired_controller_poles
+desired_c_poles = [-24.05+35.5j,-24.05-35.5j,-0.61+4.9283j,-0.61-4.9283j];
+K = place(a, b, desired_c_poles)
+
+%observability check
+g=obsv(a,c);
+if rank(g)==rank(a)
+    disp('All states are observable');
+else 
+    disp('All states are not observable');
+    unobservable_states = rank(a) - rank(g);
+    fprintf('Number of unobservable states: %d\n', unobservable_states);
+end
+
+%desired_observer_pole
+desired_o_poles = [-30,-33,-38,-40];
+L = place(a', c', desired_o_poles)'
+
+%closed-loop_controller_analysis
+e=a-b*K
+charpoly(e)
+
+%observer_analysis
+f=a-L*c
+charpoly(f)
+
